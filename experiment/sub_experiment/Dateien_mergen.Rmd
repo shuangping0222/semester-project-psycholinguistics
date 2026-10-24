@@ -1,0 +1,91 @@
+---
+title: "Dateien mergen"
+subtitle:  | 
+           | WS 2025/26 | Sprachverarbeitung im Kontext individueller Unterschiede 
+           | Germanistische Linguistik, LMU München
+author: "Freya Gastmann"
+date: "09/01/2026"
+output: 
+  html_document:
+    theme: lumen
+    highlight: textmate
+    toc: true
+    toc_depth: 2
+---
+
+Liebe Studierende,  
+  
+dieses Skript dient der Erstellung einer longlist sowie einer merged longlist.  
+Befolgen Sie alle Schritte und passen Sie den Code ggf. dort, wo angegeben, entsprechend an.  
+  
+Wichtig vorweg: Um einen Code auszuführen, klicken Sie in die entsprechende Zeile. Drücken Sie dann 'Strg' + 'Enter' (Windows) oder 'cmd' + 'Enter' (Mac).  
+Alternativ können Sie auch einen gesamten Code-Chunk (grau hinterlegt) auf einmal ausführen, indem Sie in der oberen rechten Ecke des Code-Chunk auf den grünen Pfeil klicken.  
+  
+# Pakete
+Bevor Sie beginnen können, müssen Sie ggf. noch Pakete installieren, die Ihnen die Arbeit in R erleichtern sollen.  
+Klicken Sie dafür oben im Menü auf "Tools" - "Install Packages" und installieren Sie folgende Pakete:  
+(1) readbulk  
+(2) tidyverse  
+(3) openxlsx  
+(4) pacman  
+  
+Nun laden Sie die Pakete, damit Sie diese im Folgenden nutzen können.
+```{r}
+pacman::p_load(readbulk, # gesammeltes Laden von csv-Dateien
+               tidyverse, # erleichterte Datenaufbereitung
+               openxlsx # Laden von xlsx-Dateien
+              )
+```
+
+# Longlist
+Laden Sie die einzelnen csv-Ergebnisdateien Ihres OpenSesame-Experiments.  
+In R-Studio ist Ihre working directory (d.h., der Ordner, aus dem Dateien geladen und in den Dateien gespeichert werden) der Ordner, in dem dieses R-Skript gespeichert ist. Da Ihre OpenSesame-Daten aber ja im Unterordner "LDT" abgespeichert wurden, geben Sie diesen unter `directory` an.  
+Das Argument `extension` sorgt dafür, dass nun alle Dateien mit der Endung "csv" aus dem LDT-Ordner in R geladen und direkt zu einer gemeinsamen Datei mit dem Namen "LDT_longlist" zusammengefügt werden.
+```{r}
+LDT_longlist <- read_opensesame(directory = "gruppe3",  extension = ".csv")
+```
+
+Nun haben Sie eine Datei mit unzähligen Zeilen und Spalten. Jedoch benötigen Sie nicht alle Spalten. Lassen Sie sich daher nun zuerst alle Spaltennamen anzeigen.
+```{r}
+colnames(LDT_longlist)
+```
+
+Identifizieren Sie nun die Spalten, die für Ihre Analysen relevant sein werden.  
+Die unten aufgelisteten Spaltennamen sind nur Beispiele. **Ändern bzw. ergänzen Sie die Variablen basierend auf Ihrem Datensatz.**
+```{r}
+LDT_longlist <- LDT_longlist %>% 
+              select(CODE, CONDITION, CHARACTER_ERGEBNISSEN, AROUSAL_MEAN, AROUSAL_STD ,ACCURACY, EMO_MEAN, EMO_STD, LETTERS, OTAN, PHONEMES, RT, WORD, WORD_CLASS)
+```
+
+Überprüfen Sie nun die Codes Ihrer Proband:innen. Stimmt die Anzahl der Proband:innen mit den von Ihnen getesteten Personen überein? Gibt es Tippfehler bei den Codes?  
+Ggf. müssen Sie auch hier einmal die Variable "Participant" anpassen und den von Ihnen gewählten Namen für die Code-Spalte eingeben.
+```{r}
+n_distinct(LDT_longlist$CODE) # Anzahl der Proband:innen
+list(unique(LDT_longlist$CODE)) # Auflistung der Codes
+```
+
+Wenn alles stimmt, speichern Sie die Longlist im Ordner "SiKiU_Daten". Da dieser Ordner automatisch Ihre working directory ist (s. Erklärung oben), brauchen Sie beim Speichern nicht weiter eine directory angeben.  
+Der folgende Code speichert Ihre Longlist im csv-Format ab unter dem Namen "LDT_longlist_2026_01_09". Das Argument `row.names = FALSE` stellt sicher, dass ihre Longlist *keine* erste Spalte mit einer durchnummerierten Reihenfolge enthält.
+```{r}
+write.csv(LDT_longlist, file = "LDT_longlist_sub.csv", row.names = FALSE)
+```
+
+# Merged Longlist
+In einem nächsten Schritt erstellen wir nun die merged Longlist. Laden Sie dafür nun auch die Hintergrunddatei im xlsx-Format ein.
+```{r}
+p_infos <- read.xlsx("Hintergrunddaten_sub.xlsx")
+```
+
+Nun möchten wir die Hintergrunddaten an unsere Longlist mergen, damit wir später z.B. den Einfluss der Sprachkompetenz auf die LDT performance analysieren können. Dafür kopieren wir mithilfe der `merge`-Funktion alle Hintergrundinfos an die LDT-Daten, sodass für jede:n Proband:in in jeder trial-Zeile alle Hintergrunddaten stehen. Der Datensatz wird somit also deutlich größer werden.  
+Wichtig!: Damit das Mergen problemlos funktioniert, müssen Sie sicherstellen, dass die Bezeichnungen für die Proband:innencode-Variable in Ihrer Longlist und in Ihrer Hintergrunddatei übereinstimmen. Im Beispiel hier lautet die Variable "Participant" - ggf. müssen Sie diese Bezeichnung also noch in Anlehnung an Ihre Daten anpassen.
+```{r}
+LDT_longlist_merged <- merge(LDT_longlist, p_infos, by = "CODE")
+```
+  
+Überprüfen Sie oben rechts im Fenster in der "Environment" die Anzahl der Zeilen. Stimmen die Anzahl der Zeilen von LDT_longlist und LDT_longlist_merged überein? Dann hat alles beim Mergen geklappt und die Proband:innencodes in Ihrer Longlist und Ihrer Hintergrunddatei waren übereinstimmend. Sollten Sie bspw. für eine Person nur die LDT-Ergebnisse haben aber keine Hintergrundinfos (oder umgekehrt), wird diese Person beim obigen Merge automatisch ausgeschlossen.   
+  
+Speichern Sie nun Ihre merged longlist.
+```{r}
+write.csv(LDT_longlist_merged, file = "LDT_longlist_merged_sub.csv", row.names = FALSE)
+```
+
